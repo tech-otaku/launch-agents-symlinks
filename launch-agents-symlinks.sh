@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 
 for e in ~/Library/Mobile\ Documents/com~apple~CloudDocs/LaunchAgents/*; do
     f=$( basename "${e}" )
