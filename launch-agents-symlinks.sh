@@ -11,6 +11,7 @@
 #
 
 # AUTO = If set, process all property list files in the source directory without prompting for user interaction.
+# SYMLINKS = If set, create symbolic links to the property list files instead of copying the originals.
 # SOURCE = The source directory containing property list files. 
 # TARGET = The directory in which to create symbolic links. Limited to those defined in the $VALID and ultimately $INCLUDED arrays.
 # VALID = An array of valid target directories.
@@ -35,13 +36,14 @@
                     
     Syntax: 
     ./$(basename $0) -h
-    ./$(basename $0) [-a] -s /full/path/to/source/directory -t /full/path/to/target/directory
+    ./$(basename $0) [-a] [-l] -s SOURCE -t TARGET
 
     Options:
     -a              Auto mode. Do not prompt for user interaction.
     -h              This help message.
-    -s              Source directory. Full path to directory containing property list files
-    -t              Target directory. Full path to directory in which to create symbolic links 
+    -l              Create symbolic links to property list files instead of copying originals.
+    -s SOURCE       Source directory. Full path to directory containing property list files.
+    -t TARGET       Target directory. Full path to directory to copy property list files to.
 
     Example: ./$(basename $0) -a -s "\$HOME/Library/Mobile Documents/com~apple~CloudDocs/LaunchAgents" -t "\$HOME/Library/LaunchAgents"
     
@@ -62,7 +64,7 @@ EOF
     fi
 
 # Prevent an option that expects an argument, taking the next option as an argument if its argument is omitted (i.e. -s -t /full/path/to/target/directory)
-    while getopts ':ahs:t:' opt; do
+    while getopts ':ahls:t:' opt; do
         if [[ $OPTARG =~ ^\-.? ]]; then
             printf "\nERROR: * * * '%s' is not valid argument for option '-%s'\n" $OPTARG $opt
             usage
@@ -74,7 +76,7 @@ EOF
     OPTIND=1        
 
 # Process command line options
-    while getopts ':ahs:t:' opt; do
+    while getopts ':ahls:t:' opt; do
         case $opt in
             a) 
                 AUTO=true 
@@ -82,6 +84,9 @@ EOF
             h)
                 usage
                 exit 0
+                ;;
+            l) 
+                SYMLINKS=true 
                 ;;
             s) 
                 SOURCE=$OPTARG 
@@ -139,7 +144,7 @@ EOF
 # Target directory not scanned by launchd
     INVALID=true
     for i in "${VALID[@]}"; do 
-        echo "$i"
+#        echo "$i"
         if [ "$TARGET" == "$i" ]; then   # target directory scanned by launchd
             unset INVALID       
             break
@@ -155,7 +160,7 @@ EOF
 # Target directory scanned by launchd, but currently excluded by script
     EXCLUDE=true
     for i in "${INCLUDED[@]}"; do 
-        echo "$i"
+#        echo "$i"
         if [ "$TARGET" == "$i" ]; then   # target directory included bt script
             unset EXCLUDE       
             break
@@ -176,11 +181,11 @@ EOF
     # Get the name of the property list file
         f=$( basename "$e" )
 
-    # Check if a symbolic link (-L) to the source exists in the target
-        if [ -L "$TARGET/$f" ]; then
+    # Check if a copy (-f) of the source or symbolic link (-L) to the source exists in the target
+        if [ -f "$TARGET/$f" ] || [ -L "$TARGET/$f" ]; then
         # Unload the job
             launchctl unload "$TARGET/$f" > /dev/null 2>&1
-        # Delete the symbolic link
+        # Delete the the copy or symbolic link
             rm -f "$TARGET/$f"
         fi
 
@@ -203,7 +208,11 @@ EOF
             fi
 
             if [[ $LOAD =~ [A-Z] && $LOAD == "Y" ]]; then
-                ln -sf "$e" "$TARGET"
+                if [ -z $SYMLINKS ]; then
+                    cp -p "$e" "$TARGET"
+                else
+                    ln -sf "$e" "$TARGET"
+                fi
                 launchctl load "$TARGET/$f" 
                 printf "> > > > %s has been loaded.\n" "$f"
             fi
@@ -218,7 +227,3 @@ EOF
             fi
         fi
     done
-
-
-
-#    launchctl list | grep com\.steve

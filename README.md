@@ -1,5 +1,16 @@
 # launch-agents-symlinks
 
+## Important
+
+As of macOS Sonoma 14.0, on system startup and login `launchd` appears to ignore symbolic links that point to centrally-stored property list files. Using `launchctl`, this script can still explicitly load property list files using the symbolic links to them it creates, but they are not re-loaded by `launchd` on system startup and login.
+
+#### For macOS Sonoma 14.0
+By default, the script will now *copy* the centrally-stored property list files to the target directory instead of creating symbolic links to them.
+
+#### For macOS Ventura 13.0 and Earlier
+Use the `-l` option to continue to create symbolic links in the target directory as before.
+
+
 ## Purpose
 
 Create symbolic links locally to `launchd` property list files stored centrally in the cloud. 
@@ -8,7 +19,7 @@ Create symbolic links locally to `launchd` property list files stored centrally 
 
 `./launch-agents-symlinks.sh -h`
 
-`./launch-agents-symlinks.sh [-a] -s "/full/path/to/source/directory" -t "/full/path/to/target/directory"`
+`./launch-agents-symlinks.sh [-a] [-l] -s "/full/path/to/source/directory" -t "/full/path/to/target/directory"`
 
 ## Example
 
